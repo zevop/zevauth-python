@@ -1,0 +1,74 @@
+name: Release
+
+# Push a tag like v0.2.0 and this builds, checks and publishes to PyPI
+# with Trusted Publishing: PyPI trusts this workflow's identity, so no
+# PyPI token is stored anywhere. See RELEASING.md for the one-time setup.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Tag matches zevauth.__version__
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          code=$(sed -nE 's/^__version__ = "(.*)"/\1/p' src/zevauth/_version.py)
+          if [ "$tag" != "$code" ]; then
+            echo "::error::Tag v$tag does not match zevauth.__version__ ($code)."
+            exit 1
+          fi
+
+      - run: pip install -e ".[fastapi,django,flask]" pytest build twine
+      - run: pytest -q
+      - run: python -m build
+      - run: twine check dist/*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/zevauth/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
