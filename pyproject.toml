@@ -1,0 +1,96 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zevauth"
+dynamic = ["version"]
+description = "ZevAuth for Python: verify sessions, call the backend API and check webhook signatures from FastAPI, Django, Flask or plain Python."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [{ name = "ZevOp Inc." }]
+keywords = ["zevauth", "authentication", "auth", "jwt", "sessions", "fastapi", "django", "flask"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Framework :: Django",
+  "Framework :: FastAPI",
+  "Framework :: Flask",
+  "Topic :: Security",
+  "Typing :: Typed",
+]
+dependencies = [
+  "PyJWT[crypto]>=2.8,<3",
+  "httpx>=0.24,<1",
+]
+
+[project.optional-dependencies]
+fastapi = ["fastapi>=0.100"]
+django = ["django>=4.2"]
+flask = ["flask>=2.3"]
+
+[project.urls]
+Homepage = "https://docs.zevauth.com"
+Documentation = "https://docs.zevauth.com/sdk/python"
+Source = "https://github.com/zevop/zevauth-python"
+Issues = "https://github.com/zevop/zevauth-python/issues"
+Changelog = "https://docs.zevauth.com/sdk/changelog"
+
+[tool.hatch.version]
+path = "src/zevauth/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/zevauth"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/zevauth", "tests", "README.md", "LICENSE", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+# The oldest version mypy itself still checks; the code targets 3.9 (see ruff).
+python_version = "3.10"
+strict = true
+packages = ["zevauth"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+# Django and Flask ship without complete type stubs; the integrations are
+# thin adapters over the strictly typed core.
+module = ["django.*", "flask.*", "werkzeug.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["zevauth.django.*", "zevauth.flask", "zevauth.fastapi"]
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+disallow_subclassing_any = false
+disallow_any_unimported = false
+warn_return_any = false
+warn_unused_ignores = false
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "RUF"]
+ignore = ["S101", "UP006", "UP007", "UP035", "UP045", "RUF022"]
+
+[tool.ruff.lint.per-file-ignores]
+# B008: `Depends(...)` in a default argument is how FastAPI declares dependencies.
+"tests/**" = ["S105", "S106", "S108", "B008"]
+"src/zevauth/fastapi.py" = ["B008"]
