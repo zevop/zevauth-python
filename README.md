@@ -137,4 +137,4 @@ Questions and bug reports: open an issue here, or contact ZevAuth support.
 
 ## License
 
-MIT
+[MIT](LICENSE). Copyright (c) 2026 ZevOp Inc.
